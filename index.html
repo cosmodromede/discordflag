@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cosmodromede's Discord Flag Generator</title>
+    <!-- Favicon link pointing to favicon.png -->
+    <link rel="icon" type="image/png" href="favicon.png">
+    <style>
+        body { 
+            font-family: "Comic Sans MS", "Comic Sans", cursive, sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 100vh; 
+            background-color: #1e112c; 
+            margin: 0; 
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container { 
+            background: #2a1b3d; 
+            padding: 40px; 
+            border: 3px solid #0f0718;
+            text-align: center; 
+            max-width: 750px; 
+            width: 100%; 
+        }
+        .logo {
+            width: 80px;
+            height: auto;
+            margin-bottom: 16px;
+        }
+        h2 { 
+            color: #f3e8ff; 
+            margin-top: 0;
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 24px;
+        }
+        p { 
+            color: #d8b4fe; 
+            font-size: 18px; 
+            line-height: 1.4;
+            margin-bottom: 30px; 
+        }
+        
+        .input-group {
+            margin-bottom: 24px;
+            text-align: left;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #e9d5ff;
+            font-size: 18px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #0f0718;
+            font-size: 20px;
+            text-transform: lowercase;
+            font-family: inherit;
+            box-sizing: border-box;
+            background: #1e112c;
+            color: #f3e8ff;
+        }
+        input[type="text"]::placeholder {
+            color: #49335f;
+        }
+        input[type="file"] {
+            width: 100%;
+            padding: 16px;
+            background: #1e112c;
+            border: 2px dashed #0f0718;
+            box-sizing: border-box;
+            font-family: inherit;
+            font-size: 16px;
+            cursor: pointer;
+            color: #f3e8ff;
+        }
+        
+        canvas { 
+            max-width: 100%; 
+            height: auto; 
+            border: 2px solid #0f0718; 
+            display: none; 
+            margin: 24px auto 0; 
+            background: transparent;
+        }
+        
+        .btn-container {
+            display: flex;
+            gap: 15px;
+            margin-top: 24px;
+        }
+        
+        button { 
+            padding: 14px 28px; 
+            font-weight: bold; 
+            font-size: 18px;
+            font-family: inherit;
+            cursor: pointer; 
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        #generateBtn {
+            background-color: #1e112c;
+            color: #e9d5ff;
+            border: 3px solid #0f0718;
+        }
+        #generateBtn:hover {
+            background-color: #0f0718;
+            color: #ffffff;
+        }
+        
+        #downloadBtn { 
+            background-color: #e9d5ff; 
+            color: #1e112c; 
+            border: 3px solid #0f0718; 
+            display: none; 
+        }
+        #downloadBtn:hover { 
+            background-color: #ffffff; 
+            color: #0f0718;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Logo image also using favicon.png -->
+    <img src="favicon.png" alt="Logo" class="logo">
+    
+    <h2>Cosmodromede's Discord Flag Generator</h2>
+    <p>Upload a flag to convert it into a perfectly scaled 1.46:1 Discord style with 18.18% corner rounding :)</p>
+    
+    <div class="input-group">
+        <label for="countryCode">Two-letter ID (The file will save as flag_xx.png)</label>
+        <input type="text" id="countryCode" placeholder="e.g. us, fr, nl, de" maxlength="2">
+    </div>
+
+    <div class="input-group">
+        <label for="upload">Select flag image (any aspect ratio)</label>
+        <input type="file" id="upload" accept="image/*">
+    </div>
+    
+    <canvas id="canvas"></canvas>
+    
+    <div class="btn-container">
+        <button id="generateBtn">Make that flag emoji</button>
+        <button id="downloadBtn">Download Emoji</button>
+    </div>
+</div>
+
+<script>
+    const upload = document.getElementById('upload');
+    const countryCodeInput = document.getElementById('countryCode');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const generateBtn = document.getElementById('generateBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    const TARGET_WIDTH = 1022;
+    const TARGET_HEIGHT = 700;
+
+    // Force lowercase text and strip out non-letters
+    countryCodeInput.addEventListener('input', (e) => {
+        e.target.value = e.target.value.toLowerCase().replace(/[^a-z]/g, '');
+    });
+
+    // Handle Generation Step explicitly
+    generateBtn.addEventListener('click', () => {
+        const files = upload.files;
+        if (!files || files.length === 0) {
+            alert("Please select a flag image first!");
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const img = new Image();
+            img.onload = () => {
+                canvas.width = TARGET_WIDTH;
+                canvas.height = TARGET_HEIGHT;
+                
+                ctx.clearRect(0, 0, TARGET_WIDTH, TARGET_HEIGHT);
+
+                // Authentic Twemoji rounded corner geometry (18.18% of frame height)
+                const radius = TARGET_HEIGHT * 0.1818; 
+                
+                ctx.beginPath();
+                ctx.moveTo(radius, 0);
+                ctx.lineTo(TARGET_WIDTH - radius, 0);
+                ctx.quadraticCurveTo(TARGET_WIDTH, 0, TARGET_WIDTH, radius);
+                ctx.lineTo(TARGET_WIDTH, TARGET_HEIGHT - radius);
+                ctx.quadraticCurveTo(TARGET_WIDTH, TARGET_HEIGHT, TARGET_WIDTH - radius, TARGET_HEIGHT);
+                ctx.lineTo(radius, TARGET_HEIGHT);
+                ctx.quadraticCurveTo(0, TARGET_HEIGHT, 0, TARGET_HEIGHT - radius);
+                ctx.lineTo(0, radius);
+                ctx.quadraticCurveTo(0, 0, radius, 0);
+                ctx.closePath();
+
+                ctx.clip();
+                ctx.drawImage(img, 0, 0, TARGET_WIDTH, TARGET_HEIGHT);
+
+                // Make the results visible cleanly
+                canvas.style.display = 'block';
+                downloadBtn.style.display = 'block';
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(files[0]);
+    });
+
+    // Handle Downloads
+    downloadBtn.addEventListener('click', () => {
+        const code = countryCodeInput.value.trim().toLowerCase();
+        const filename = code ? `flag_${code}.png` : 'flag_emoji.png';
+        
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    });
+</script>
+
+</body>
+</html>
