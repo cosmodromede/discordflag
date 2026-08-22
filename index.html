@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cosmo's Discord Flag Gen</title>
+    <title>Cosmodromede's Discord Flag Generator</title>
     <!-- Favicon link pointing to favicon.png -->
     <link rel="icon" type="image/png" href="favicon.png">
     <style>
@@ -137,7 +137,7 @@
     <img src="favicon.png" alt="Logo" class="logo">
     
     <h2>Cosmodromede's Discord Flag Generator</h2>
-    <p>Upload rectangle, convert to a cool Discord/Slack flag emoji thing for servers and stuff.</p>
+    <p>Upload a flag to convert it into a perfectly scaled Twemoji asset with 18.18% corner rounding :)</p>
     
     <div class="input-group">
         <label for="countryCode">Two-letter ID (The file will save as flag_xx.png)</label>
@@ -152,7 +152,7 @@
     <canvas id="canvas"></canvas>
     
     <div class="btn-container">
-        <button id="generateBtn">Make that flag emoji</button>
+        <button id="generateBtn">Generate Flag</button>
         <button id="downloadBtn">Download Emoji</button>
     </div>
 </div>
@@ -165,7 +165,8 @@
     const generateBtn = document.getElementById('generateBtn');
     const downloadBtn = document.getElementById('downloadBtn');
 
-    const TARGET_WIDTH = 1022;
+    // Updated dimensions: 1050x700 gives a perfect 1.5:1 (3:2 equivalent) ratio profile
+    const TARGET_WIDTH = 1050;
     const TARGET_HEIGHT = 700;
 
     // Force lowercase text and strip out non-letters
@@ -231,3 +232,4 @@
 
 </body>
 </html>
+
