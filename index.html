@@ -24,7 +24,7 @@
             padding: 40px; 
             border: 3px solid #0f0718;
             text-align: center; 
-            max-width: 750px; 
+            max-width: 800px; 
             width: 100%; 
         }
         .logo {
@@ -90,8 +90,19 @@
             display: none; 
             margin: 24px auto 0; 
             background: transparent;
+            cursor: grab;
+        }
+        canvas:active {
+            cursor: grabbing;
         }
         
+        .instruction-note {
+            font-size: 14px;
+            color: #c084fc;
+            margin-top: 8px;
+            display: none;
+        }
+
         .btn-container {
             display: flex;
             gap: 15px;
@@ -137,7 +148,7 @@
     <img src="favicon.png" alt="Logo" class="logo">
     
     <h2>Cosmodromede's Discord Flag Generator</h2>
-    <p>Upload a flag to convert it into a perfectly scaled Twemoji asset with 18.18% corner rounding :)</p>
+    <p>The ultimate tool for flag emojis!</p>
     
     <div class="input-group">
         <label for="countryCode">Two-letter ID (The file will save as flag_xx.png)</label>
@@ -150,6 +161,7 @@
     </div>
     
     <canvas id="canvas"></canvas>
+    <div id="instructionNote" class="instruction-note">Click and drag directly on the flag thing to reposition it!!</div>
     
     <div class="btn-container">
         <button id="generateBtn">Generate Flag</button>
@@ -164,15 +176,52 @@
     const ctx = canvas.getContext('2d');
     const generateBtn = document.getElementById('generateBtn');
     const downloadBtn = document.getElementById('downloadBtn');
+    const instructionNote = document.getElementById('instructionNote');
 
-    // Updated dimensions: 1050x700 gives a perfect 1.5:1 (3:2 equivalent) ratio profile
     const TARGET_WIDTH = 1050;
     const TARGET_HEIGHT = 700;
+
+    let img = null;
+    let scale = 1;
+    let offsetX = 0;
+    let offsetY = 0;
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
 
     // Force lowercase text and strip out non-letters
     countryCodeInput.addEventListener('input', (e) => {
         e.target.value = e.target.value.toLowerCase().replace(/[^a-z]/g, '');
     });
+
+    function drawCanvas() {
+        if (!img) return;
+
+        canvas.width = TARGET_WIDTH;
+        canvas.height = TARGET_HEIGHT;
+        
+        ctx.clearRect(0, 0, TARGET_WIDTH, TARGET_HEIGHT);
+
+        // Authentic Twemoji rounded corner geometry (18.18% of frame height)
+        const radius = TARGET_HEIGHT * 0.1818; 
+        
+        ctx.beginPath();
+        ctx.moveTo(radius, 0);
+        ctx.lineTo(TARGET_WIDTH - radius, 0);
+        ctx.quadraticCurveTo(TARGET_WIDTH, 0, TARGET_WIDTH, radius);
+        ctx.lineTo(TARGET_WIDTH, TARGET_HEIGHT - radius);
+        ctx.quadraticCurveTo(TARGET_WIDTH, TARGET_HEIGHT, TARGET_WIDTH - radius, TARGET_HEIGHT);
+        ctx.lineTo(radius, TARGET_HEIGHT);
+        ctx.quadraticCurveTo(0, TARGET_HEIGHT, 0, TARGET_HEIGHT - radius);
+        ctx.lineTo(0, radius);
+        ctx.quadraticCurveTo(0, 0, radius, 0);
+        ctx.closePath();
+
+        ctx.clip();
+
+        // Draw image using current user offsets and scale
+        ctx.drawImage(img, offsetX, offsetY, img.width * scale, img.height * scale);
+    }
 
     // Handle Generation Step explicitly
     generateBtn.addEventListener('click', () => {
@@ -184,38 +233,85 @@
 
         const reader = new FileReader();
         reader.onload = (event) => {
-            const img = new Image();
+            img = new Image();
             img.onload = () => {
-                canvas.width = TARGET_WIDTH;
-                canvas.height = TARGET_HEIGHT;
+                // Initialize cover scaling fit by default
+                const hRatio = TARGET_WIDTH / img.width;
+                const vRatio = TARGET_HEIGHT / img.height;
+                scale = Math.max(hRatio, vRatio);
                 
-                ctx.clearRect(0, 0, TARGET_WIDTH, TARGET_HEIGHT);
+                // Center it initially
+                offsetX = (TARGET_WIDTH - img.width * scale) / 2;
+                offsetY = (TARGET_HEIGHT - img.height * scale) / 2;
 
-                // Authentic Twemoji rounded corner geometry (18.18% of frame height)
-                const radius = TARGET_HEIGHT * 0.1818; 
-                
-                ctx.beginPath();
-                ctx.moveTo(radius, 0);
-                ctx.lineTo(TARGET_WIDTH - radius, 0);
-                ctx.quadraticCurveTo(TARGET_WIDTH, 0, TARGET_WIDTH, radius);
-                ctx.lineTo(TARGET_WIDTH, TARGET_HEIGHT - radius);
-                ctx.quadraticCurveTo(TARGET_WIDTH, TARGET_HEIGHT, TARGET_WIDTH - radius, TARGET_HEIGHT);
-                ctx.lineTo(radius, TARGET_HEIGHT);
-                ctx.quadraticCurveTo(0, TARGET_HEIGHT, 0, TARGET_HEIGHT - radius);
-                ctx.lineTo(0, radius);
-                ctx.quadraticCurveTo(0, 0, radius, 0);
-                ctx.closePath();
+                drawCanvas();
 
-                ctx.clip();
-                ctx.drawImage(img, 0, 0, TARGET_WIDTH, TARGET_HEIGHT);
-
-                // Make the results visible cleanly
+                // Make the results and helper hint visible cleanly
                 canvas.style.display = 'block';
                 downloadBtn.style.display = 'block';
+                instructionNote.style.display = 'block';
             };
             img.src = event.target.result;
         };
         reader.readAsDataURL(files[0]);
+    });
+
+    // Drag-to-pan event listeners
+    canvas.addEventListener('mousedown', (e) => {
+        if (!img) return;
+        isDragging = true;
+        startX = e.clientX - offsetX;
+        startY = e.clientY - offsetY;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (!isDragging || !img) return;
+        
+        // Scale mouse movement relative to actual canvas resolution mapping
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = TARGET_WIDTH / rect.width;
+        const scaleY = TARGET_HEIGHT / rect.height;
+
+        offsetX = (e.clientX - rect.left) * scaleX - (startX * (TARGET_WIDTH / rect.width));
+        offsetY = (e.clientY - rect.top) * scaleY - (startY * (TARGET_HEIGHT / rect.height));
+
+        // Quick fallback using simple delta math mapped cleanly:
+        // Better direct assignment approach:
+        offsetX = ((e.clientX - rect.left) * scaleX) - ((e.clientX - startX - rect.left) * scaleX); // simplified below:
+    });
+
+    // Cleaner mouse drag tracking logic
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let initialOffsetX = 0;
+    let initialOffsetY = 0;
+
+    canvas.addEventListener('mousedown', (e) => {
+        if (!img) return;
+        isDragging = true;
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+        initialOffsetX = offsetX;
+        initialOffsetY = offsetY;
+        e.preventDefault();
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (!isDragging || !img) return;
+        const rect = canvas.getBoundingClientRect();
+        const scaleFactor = TARGET_WIDTH / rect.width; // Ratio between canvas pixels and displayed screen pixels
+        
+        const dx = (e.clientX - dragStartX) * scaleFactor;
+        const dy = (e.clientY - dragStartY) * scaleFactor;
+
+        offsetX = initialOffsetX + dx;
+        offsetY = initialOffsetY + dy;
+
+        drawCanvas();
+    });
+
+    window.addEventListener('mouseup', () => {
+        isDragging = false;
     });
 
     // Handle Downloads
@@ -232,4 +328,3 @@
 
 </body>
 </html>
-
